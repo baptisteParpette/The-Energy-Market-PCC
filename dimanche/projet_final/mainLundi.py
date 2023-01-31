@@ -21,14 +21,14 @@ class Weather(multiprocessing.Process):
 
     def run(self):
         t=0.0
-        dt= 1/6
+        dt= 1
         while True:
             rdm=(random.normal()*dt)
             temperature = round((-7.5*math.sin((math.pi*t/12)+math.pi/6)+10.5)+(rdm),2)
             t=t+dt
             self.shared[0] = temperature
             self.shared[1] = t
-            time.sleep(0.1)
+            time.sleep(0.01)
 
 class Market(multiprocessing.Process):
     def __init__(self,shared, prixStart,shared_Value):
@@ -52,6 +52,7 @@ class Market(multiprocessing.Process):
         self.state_natural=0
         self.state_fuel=0
         self.last_temp=0
+        self.volat=0.0000001
         self.prix=prixStart
         self.shared_Value=shared_Value
         #self.shared_Value=shared_Value
@@ -66,96 +67,64 @@ class Market(multiprocessing.Process):
         rapport = temp        
         
         if rapport != self.last_temp:
-            if rapport == 2**31-1:#WAR
-                self.prix*=2
-                self.prix = round(self.prix, 10)
+            if rapport == 2**31-1 and self.state_war==0:#WAR
+                self.volat=self.volat*5
                 self.state_war=1
-                self.lst_prix.append(self.prix)
                 self.last_temp = rapport
                 print("DEBUT GUERRE")
-            if rapport == 2**31-2:#NATURAL
-                self.prix/=2
+                self.prix = self.prix + 1 * self.volat
                 self.prix = round(self.prix, 10)
-                self.state_natural=1
-
                 self.lst_prix.append(self.prix)
+                self.last_temp = rapport
+            if rapport == 2**31-2 and self.state_natural==0:#NATURAL
+                self.volat=self.volat*5
+                self.state_natural=1
                 self.last_temp = rapport
                 print("DEBUT NATURAL")
-
-            if rapport == 2**31-3:#FUEL
-                self.prix*=random.uniform()
+                self.prix = self.prix + 1 * self.volat
                 self.prix = round(self.prix, 10)
-                self.state_fuel=1
-
                 self.lst_prix.append(self.prix)
                 self.last_temp = rapport
-                print("DEBUT FUEL")
 
-            else:
+            if rapport == 2**31-3 and self.state_fuel==0:#FUEL
+                self.volat=self.volat*5
+                self.state_fuel=1
+                self.last_temp = rapport
+                print("DEBUT FUEL")
+                self.prix = self.prix + 1 * self.volat
+                self.prix = round(self.prix, 10)
+                self.lst_prix.append(self.prix)
+                self.last_temp = rapport
+
+            if rapport < 2**31-3:
+
                 if self.state_war==1:
                     if(random.randint(0,500)==1):
-                        self.prix = self.prix *0.5
+                        self.volat=self.volat/5
 
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
                         self.last_temp = rapport
                         self.state_war=0
                         print("FIN GUERRE")
 
-                    else:
-                        self.prix = self.prix + rapport * 0.000001
-
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
-                        self.last_temp = rapport
-
-
                 if self.state_natural==1:
                     if(random.randint(0,500)==1):
-                        self.prix = self.prix *0.5
+                        self.volat=self.volat/5
 
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
                         self.last_temp = rapport
                         self.state_natural=0
                         print("FIN NATURAL")
-                    else:
-                        self.prix = self.prix + rapport * 0.000001
-
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
-                        self.last_temp = rapport
-
 
                 if self.state_fuel==1:
                     if(random.randint(0,500)==1):
-                        self.prix = self.prix *0.5
-
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
+                        self.volat=self.volat/5
+                        
                         self.last_temp = rapport
                         self.state_fuel=0
                         print("FIN FUEL")
-
-                    else:
-                        self.prix = self.prix + rapport * 0.000001
-
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
-                        self.last_temp = rapport
-                else:
-                        self.prix = self.prix + rapport * 0.000001
-
-                        self.prix = round(self.prix, 10)
-
-                        self.lst_prix.append(self.prix)
-                        self.last_temp = rapport
+                self.prix = self.prix + rapport * self.volat
+                self.prix = round(self.prix, 10)
+                self.lst_prix.append(self.prix)
+                self.last_temp = rapport
 
             plt.cla()
             plt.plot(self.lst_prix)
@@ -182,6 +151,7 @@ class Market(multiprocessing.Process):
             print("Disconnecting from client: ", a)
 
     def plotPrice(self):
+        time.sleep(1)
         fig = plt.figure()
         ani = animation.FuncAnimation(fig, self.update,interval=0.0000000001, repeat=False)
         plt.show()
@@ -247,7 +217,7 @@ class Market(multiprocessing.Process):
             if rapport != self.last_temp:
                 
                 self.last_temp = rapport
-                my_proba=random.randint(0,1000)
+                my_proba=random.randint(0,10000)
                 if my_proba==1: #WAR
                     os.kill(os.getppid(), signal.SIGUSR1)
                 if my_proba==2: #NNATURAL
@@ -257,7 +227,6 @@ class Market(multiprocessing.Process):
 
 
     def war(self, sig, frame):
-        print("Received signal 1", sig, "in process with PID", os.getpid())
         self.state_war=1
     
     def natural(self, sig, frame):
@@ -415,7 +384,7 @@ def generate_homes(num_homes):
 if __name__ == '__main__':
     PORT=random.randint(10000,50000)
     ADDR_LOCAL="localhost"
-    NB_HOME = 10
+    NB_HOME = 5
     prixStart=0.17
 
     consFlag = True
