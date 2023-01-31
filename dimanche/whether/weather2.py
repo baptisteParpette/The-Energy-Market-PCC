@@ -1,22 +1,48 @@
 import random
 import multiprocessing
 import time
+import math
+from numpy import random
+import matplotlib.pyplot as plt
 
 class Weather(multiprocessing.Process):
-    def __init__(self, temperature_q):
-        multiprocessing.Process.__init__(self)
-        self.temperature_q = temperature_q
+    def __init__(self,shared):
+        super().__init__()
+        self.shared=shared
 
     def run(self):
+        t=0.0
+        dt=1/6
+        temp = []
+        temp = []
+        absx = []
         while True:
-            temperature = random.uniform(10, 20)
-            self.temperature_q.put(temperature)
-            time.sleep(1)
+            rdm=(random.normal()*dt)
+            temperature = round((-7.5*math.sin((math.pi*t/12)+math.pi/6)+10.5)+(rdm),2)
+            t=t+dt
+            temp += [temperature]
+            self.shared.value = temperature
+            print(self.shared.value)
+            time.sleep(0.5)
+
+        #plt.plot(absx,temp)
+        #plt.show()
 
 if __name__ == '__main__':
-    temperature_q = multiprocessing.Queue()
-    weather = Weather(temperature_q)
-    weather.start()
-    while True:
-        temperature = temperature_q.get()
-        print("Temperature is: {}".format(temperature))
+    #temperature_q = multiprocessing.Queue()
+    #weather = Weather()
+    #weather.start()
+    #while i:
+        #temperature = temperature_q.get()
+        #print("Temperature is: {}".format(temperature))
+    #data = Data()
+    shared_memory = multiprocessing.Value('d', 0.0)
+
+    child = Weather(shared_memory)
+    child.start()
+    temp=shared_memory.value
+    while temp!=shared_memory.value:
+        temp=shared_memory.value
+        print("Data value after process execution:", shared_memory.value)
+
+    child.join()
