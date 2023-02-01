@@ -6,7 +6,6 @@ from numpy import random
 import os, signal
 import sysv_ipc
 import socket
-import sys
 import select
 import threading
 import concurrent.futures
@@ -29,7 +28,7 @@ class Weather(multiprocessing.Process):
             t=t+dt
             self.shared[0] = temperature
             self.shared[1] = t
-            time.sleep(0.01)
+            time.sleep(0.1)
 
 class Market(multiprocessing.Process):
     def __init__(self,shared, prixStart,shared_Value):
@@ -68,67 +67,68 @@ class Market(multiprocessing.Process):
         rapport = temp        
         
         if rapport != self.last_temp:
-            if rapport == 2**31-1 and self.state_war==0:#WAR
-                self.volat=self.volat*5
-                self.state_war=1
-                self.last_temp = rapport
-                print("DEBUT GUERRE")
-                self.prix = self.prix + 1 * self.volat
-                self.prix = round(self.prix, 10)
-                self.lst_prix.append(self.prix)
-                self.last_temp = rapport
-            if rapport == 2**31-2 and self.state_natural==0:#NATURAL
-                self.volat=self.volat*5
-                self.state_natural=1
-                self.last_temp = rapport
-                print("DEBUT NATURAL")
-                self.prix = self.prix + 1 * self.volat
-                self.prix = round(self.prix, 10)
-                self.lst_prix.append(self.prix)
-                self.last_temp = rapport
+            # if rapport == 2**31-1 and self.state_war==0:#WAR
+            #     self.volat=self.volat*5
+            #     self.state_war=1
+            #     self.last_temp = rapport
+            #     print("DEBUT GUERRE")
+            #     self.prix = self.prix + 1 * self.volat
+            #     self.prix = round(self.prix, 10)
+            #     self.lst_prix.append(self.prix)
+            #     self.last_temp = rapport
+            # if rapport == 2**31-2 and self.state_natural==0:#NATURAL
+            #     self.volat=self.volat*5
+            #     self.state_natural=1
+            #     self.last_temp = rapport
+            #     print("DEBUT NATURAL")
+            #     self.prix = self.prix + 1 * self.volat
+            #     self.prix = round(self.prix, 10)
+            #     self.lst_prix.append(self.prix)
+            #     self.last_temp = rapport
 
-            if rapport == 2**31-3 and self.state_fuel==0:#FUEL
-                self.volat=self.volat*5
-                self.state_fuel=1
-                self.last_temp = rapport
-                print("DEBUT FUEL")
-                self.prix = self.prix + 1 * self.volat
-                self.prix = round(self.prix, 10)
-                self.lst_prix.append(self.prix)
-                self.last_temp = rapport
+            # if rapport == 2**31-3 and self.state_fuel==0:#FUEL
+            #     self.volat=self.volat*5
+            #     self.state_fuel=1
+            #     self.last_temp = rapport
+            #     print("DEBUT FUEL")
+            #     self.prix = self.prix + 1 * self.volat
+            #     self.prix = round(self.prix, 10)
+            #     self.lst_prix.append(self.prix)
+            #     self.last_temp = rapport
 
-            if rapport < 2**31-3:
+            # if rapport < 2**31-3:
 
-                if self.state_war==1:
-                    if(random.randint(0,500)==1):
-                        self.volat=self.volat/5
+            #     if self.state_war==1:
+            #         if(random.randint(0,500)==1):
+            #             self.volat=self.volat/5
 
-                        self.last_temp = rapport
-                        self.state_war=0
-                        print("FIN GUERRE")
+            #             self.last_temp = rapport
+            #             self.state_war=0
+            #             print("FIN GUERRE")
 
-                if self.state_natural==1:
-                    if(random.randint(0,500)==1):
-                        self.volat=self.volat/5
+            #     if self.state_natural==1:
+            #         if(random.randint(0,500)==1):
+            #             self.volat=self.volat/5
 
-                        self.last_temp = rapport
-                        self.state_natural=0
-                        print("FIN NATURAL")
+            #             self.last_temp = rapport
+            #             self.state_natural=0
+            #             print("FIN NATURAL")
 
-                if self.state_fuel==1:
-                    if(random.randint(0,500)==1):
-                        self.volat=self.volat/5
+            #     if self.state_fuel==1:
+            #         if(random.randint(0,500)==1):
+            #             self.volat=self.volat/5
                         
-                        self.last_temp = rapport
-                        self.state_fuel=0
-                        print("FIN FUEL")
-                self.prix = self.prix + rapport * self.volat
-                self.prix = round(self.prix, 10)
-                self.lst_prix.append(self.prix)
-                self.last_temp = rapport
+            #             self.last_temp = rapport
+            #             self.state_fuel=0
+            #             print("FIN FUEL")
+            #     self.prix = self.prix + rapport * self.volat
+            #     self.prix = round(self.prix, 10)
+            #     print(self.prix)
+            #     self.lst_prix.append(self.prix)
+            #     self.last_temp = rapport
 
             plt.cla()
-            plt.plot(self.lst_prix)
+            plt.plot(rapport)
 
     def socket_handler(self, s, a):
 
@@ -139,7 +139,7 @@ class Market(multiprocessing.Process):
                 self.testtt+=1
                 t=data.decode().split(";")[2]
                 self.data.append(data.decode())
-                if sem.get_value()==0 and self.testtt==NB_HOME:
+                if kswx==0 and self.testtt==NB_HOME:
                     if self.data!=[]:
                         with lock:
                             self.temp=self.data
@@ -152,15 +152,12 @@ class Market(multiprocessing.Process):
             print("Disconnecting from client: ", a)
 
     def plotPrice(self):
-        time.sleep(1)
         fig = plt.figure()
         ani = animation.FuncAnimation(fig, self.update,interval=0.0000000001, repeat=False)
         plt.show()
 
     def run(self):
         self.create_child()
-        chartPriceThread = multiprocessing.Process(target=self.plotPrice)
-        chartPriceThread.start()
         temp=shared_memory[1]
         nbthread=0
         with concurrent.futures.ThreadPoolExecutor(max_workers = NB_HOME) as executor:
@@ -177,12 +174,12 @@ class Market(multiprocessing.Process):
                     with lock:
                         Todo=[]
                         resTemp=0
-                        print(len(self.temp))
                         for elem in self.temp:
                             Todo.append(elem.split(";")[1])
                             resTemp+=eval(elem.split(";")[1])
                         self.res.append(resTemp)
                         self.shared_Value.value=resTemp
+                        print(resTemp)
                         self.temp=[]
                         self.index+=1
                         if self.state_war==1:
@@ -206,6 +203,8 @@ class Market(multiprocessing.Process):
     def create_child(self):
         self.child_process = multiprocessing.Process(target=self.child_function)
         self.child_process.start()
+        #chartPriceThread = multiprocessing.Process(target=self.plotPrice)
+        #chartPriceThread.start()
         #print("Child process started with PID", self.child_process.pid)
 
     def child_function(self):
@@ -219,7 +218,7 @@ class Market(multiprocessing.Process):
             if rapport != self.last_temp:
                 
                 self.last_temp = rapport
-                my_proba=random.randint(0,1000)
+                my_proba=random.randint(0,10000)
                 if my_proba==1: #WAR
                     os.kill(os.getppid(), signal.SIGUSR1)
                 if my_proba==2: #NNATURAL
@@ -296,69 +295,57 @@ class Home(multiprocessing.Process):
                     if(self.surplus>=0):
                         match self.trade_policy:    
                             case "always_give":
-                                #print("tem ",round(time.time()*1000),"maison: ",self.id,"don")
-                                msg=str(self.id)+";"+str(self.surplus)#1;30 (La maison 1 à un surplus de 30 à donner)
-                                #mq_don.send(msg.encode())
+                                msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
+                                mq_don.send(msg.encode())
                                 self.send_message(str(self.id)+";"+"0"+";"+str(temp))
                                 self.surplus=0
                             case "always_sell":
-                                #print("tem ",round(time.time()*1000),"maison: ",self.id,"vendu")
                                 msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
                                 self.send_message(msg)
                                 self.surplus=0
 
                             case "sell_if_no_takers":
-                                if mq_need.current_messages == 0:
-                                    #print("tem ",round(time.time()*1000),"maison: ",self.id,"vendu car personne")
+                                if mq_don.current_messages != 0:
                                     msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
                                     self.send_message(msg)
-                                    self.surplus=0
                                 else:
-                                    (msg,_)=mq_need.receive()
-                                    msg=str(self.id)+";"+"0"+";"+str(temp)
-                                    self.send_message(msg)
-                                    self.surplus=0
-                                    #print("tem ",round(time.time()*1000),"maison: ",self.id," message: ",msg.decode())
+                                    msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
+                                    mq_don.send(msg.encode())
 
                                 self.surplus=0
                         
                             case _:
-                                a=1
-                                #print("no match")
+                                print("no match")
                     
-                            
+                        
                     if(self.surplus<0):
                         if mq_don.current_messages == 0:
-                            #
-                            #print("tem ",round(time.time()*1000),"maison: ",self.id,"Achat marché")
-                            #msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
                             msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
                             self.send_message(msg)
-                            self.surplus=0
+                            self.surplus=0                            
                         else:
-                            if mq_don.current_messages == 0:
-                                    #print("tem ",round(time.time()*1000),"maison: ",self.id,"Achat marché COUCOU")
-                                    msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
-                                    self.send_message(msg)
-                                    self.surplus=0
-                            
-                            else:
-                                self.send_message(str(self.id)+";"+"0"+";"+str(temp))
-                                """while self.surplus !=0:
+                            while self.surplus !=0:
+                                if(mq_don.current_messages!=0):
                                     (msg,_)=mq_don.receive()
                                     string = msg.decode()
-                                    quantite=int(string.split(";")[1])
-                          ..          donneur=string.split(";")[0]
+                                    quantite=eval(string.split(";")[1])
+                                    donneur=string.split(";")[0]
                                     
                                     if(abs(self.surplus)<quantite):
                                         quantite=quantite-abs(self.surplus)
                                         self.surplus=0
                                         msg=donneur+";"+str(quantite)
                                         mq_don.send(msg.encode())
-                                        #print("COUCOU")
                                     else:
                                         self.surplus=self.surplus+quantite
-                                        #print("ELSE COUCOU")"""
+                                else:
+                                    print(self.id," break")
+                                    break
+                            print(self.id," AIE ",self.surplus )
+                            msg=str(self.id)+";"+str(self.surplus)+";"+str(temp)
+                            self.send_message(msg)
+                            self.surplus=0  
+                            print(self.id," after")  
 
 
     def trade_energy(self, market_price):
@@ -384,15 +371,11 @@ def generate_homes(num_homes):
     return homes
 
 
-def signal_handler(signal,frame):
-    print("EXIT")
-    sys.exit(0)
 
 if __name__ == '__main__':
-    signal.signal(signal.SIGINT,signal_handler)
     PORT=random.randint(10000,50000)
     ADDR_LOCAL="localhost"
-    NB_HOME = 10
+    NB_HOME = 2
     prixStart=0.17
 
     consFlag = True
